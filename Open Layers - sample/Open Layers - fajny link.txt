@@ -1,0 +1,1 @@
+http://docs.openlayers.org/library/introduction.html#adding-an-overlay-wms
