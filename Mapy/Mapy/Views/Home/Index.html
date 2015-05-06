@@ -1,0 +1,224 @@
+﻿    <!-- The gmaps script -->
+  <script type="text/javascript" src="http://maps.google.com/maps/api/js?libraries=geometry&amp;sensor=false"></script>
+  <!-- OpenLayers base script -->
+  <script src="http://www.openlayers.org/api/OpenLayers.js"></script>
+<script src="http://openlayers.org/en/v3.3.0/build/ol.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    var map;
+    var mercator = new OpenLayers.Projection("EPSG:900913");
+    var geographic = new OpenLayers.Projection("EPSG:4326");
+    var directionsService;
+    var markers;
+    var fromAddress;
+    var toAddress;
+    var numClicks = 0;
+
+    function addMarker(lonlat, popupContentHTML) {
+        var feature = new OpenLayers.Feature(markers, lonlat);
+        feature.closeBox = true;
+        feature.popupClass = OpenLayers.Popup.FramedCloud;
+        feature.data.popupContentHTML = popupContentHTML;
+        feature.data.overflow = "auto";
+
+        var marker = feature.createMarker();
+
+        var markerClick = function(evt) {
+            if (this.popup == null) {
+                this.popup = this.createPopup(this.closeBox);
+                map.addPopup(this.popup);
+                this.popup.show();
+            } else {
+                this.popup.toggle();
+            }
+            currentPopup = this.popup;
+            OpenLayers.Event.stop(evt);
+        };
+        marker.events.register("mousedown", feature, markerClick);
+
+        markers.addMarker(marker);
+    }
+
+    function getLocationData(glon, glat) {
+        geocoder = new google.maps.Geocoder();
+        latlng = new google.maps.LatLng(glat, glon, true);
+        geocoder.geocode({ 'latLng': latlng }, function(results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+                if (numClicks == 1) {
+                    markers.clearMarkers();
+                    numClicks = 1;
+                    addMarker(new OpenLayers.LonLat(glon, glat).transform(geographic, mercator), results[1].formatted_address + ' Start');
+                    fromAddress = latlng;
+                } else if (numClicks == 2) {
+                    toAddress = latlng;
+                    addMarker(new OpenLayers.LonLat(glon, glat).transform(geographic, mercator), results[1].formatted_address + ' Koniec');
+                    var request = {
+                        origin: fromAddress,
+                        destination: toAddress,
+                        travelMode: google.maps.TravelMode.DRIVING
+                    };
+                    numClicks = 0;
+
+                    directionsService.route(request, function(response, status) {
+                        if (status == google.maps.DirectionsStatus.OK) {
+                            getRoutePolyline(response);
+                        }
+                    });
+
+                } else {
+                    numClicks = 0;
+                }
+            } else {
+                alert('Geocode failure because of ' + status);
+            }
+        });
+    }
+
+    OpenLayers.Control.Click = OpenLayers.Class(OpenLayers.Control, {
+        defaultHandlerOptions: {
+            'single': true,
+            'double': false,
+            'pixelTolerance': 0,
+            'stopSingle': false,
+            'stopDouble': false
+        },
+        initialize: function(options) {
+            this.handlerOptions = OpenLayers.Util.extend(
+                {}, this.defaultHandlerOptions
+            );
+            OpenLayers.Control.prototype.initialize.apply(
+                this, arguments
+            );
+            this.handler = new OpenLayers.Handler.Click(
+                this, {
+                    'click': this.trigger
+                }, this.handlerOptions
+            );
+        },
+        trigger: function(e) {
+            var lonlat = map.getLonLatFromViewPortPx(e.xy);
+            numClicks++;
+            lonlat.transform(mercator, geographic);
+            getLocationData(lonlat.lon, lonlat.lat);
+        }
+    });
+
+    function getRoutePolyline(result) {
+        var pointList = [];
+        var vectorLayer = map.getLayersByName("Routes")[0];
+        vectorLayer.removeAllFeatures();
+        var point;
+        for (var i = 0; i < result.routes[0].legs[0].steps.length; i++) {
+            console.log(result.routes[0].legs[0].steps[i]);
+            point = new OpenLayers.Geometry.Point(
+                result.routes[0].legs[0].steps[i].end_point.D,
+                result.routes[0].legs[0].steps[i].end_point.k).transform(geographic, mercator);
+            pointList.push(point);
+        }
+        console.log(pointList);
+        lineFeature = new OpenLayers.Feature.Vector(
+            new OpenLayers.Geometry.LineString(pointList), null, line_style
+        );
+        vectorLayer.addFeatures(lineFeature);
+    }
+
+    var line_style = {
+        strokeColor: "#0000EE",
+        strokeOpacity: 0.7,
+        strokeWidth: 4,
+        pointRadius: 6,
+        pointerEvents: "visiblePainted"
+    };
+
+    function getCapabilities() {
+        //$.get(
+        //        'http://mapy.geoportal.gov.pl/wss/service/img/guest/ORTO/MapServer/WMSServer',
+        //        {
+        //            service: 'WMS',
+        //            request: 'GetCapabilities'
+        //        })
+        //    .done(function(data) {
+        //        var debug = 1;
+        //    })
+        //    .error(function(data) {
+        //        var debug2 = 1;
+        //    });
+
+        OpenLayers.Request.GET({
+            //url : 'http://mapy.geoportal.gov.pl/wss/service/img/guest/Administracyjna/MapServer/WMSServer',
+            url: 'http://mapy.geoportal.gov.pl/wss/service/img/guest/ORTO/MapServer/WMSServer',
+            params : {
+                service: 'WMS',
+                request: 'GetCapabilities'
+            },
+            success: function(r) {
+
+                var layers = new OpenLayers.Format.WMSCapabilities().read(r);
+
+                var doc = r.responseXML;
+                if (!doc || !doc.documentElement) {
+                    doc = r.responseText;
+                }
+
+                var c = wmsCapabilitiesFormat.read(doc);
+                if (!c || !c.capability) {
+                    onLayerLoadError();
+                    return;
+                }       
+
+                // Here is result, do whatever you want with it
+                console.log(c);
+
+            },
+            failure : function(r) {
+                onLayerLoadError();
+            }
+        });
+    };
+
+    function init() {
+        var options = {
+            projection: new OpenLayers.Projection("EPSG:3857"),
+            displayProjection: geographic,
+            units: "m",
+            maxResolution: 156543.0339,
+            maxExtent: new OpenLayers.Bounds(-20037508.34, -20037508.34,
+                20037508.34, 20037508.34)
+        };
+
+        getCapabilities();
+
+        map = new OpenLayers.Map('map', options);
+
+        var wms = new OpenLayers.Layer.WMS(
+            "GeoPortal",
+            "http://mapy.geoportal.gov.pl/wss/service/img/guest/Administracyjna/MapServer/WMSServer",
+            {
+                layers: "Administracyjna",
+                format: 'image/png'
+            });
+
+        markers = new OpenLayers.Layer.Markers("points");
+
+        map.addLayer(wms);
+
+        map.addLayer(markers);
+
+        directionsService = new google.maps.DirectionsService();
+
+        map.addControl(new OpenLayers.Control.LayerSwitcher());
+        map.addControl(new OpenLayers.Control.MousePosition());
+
+        map.setCenter(new OpenLayers.LonLat(10.2, 48.9).transform(
+            geographic, mercator), 5);
+
+        addMarker(new OpenLayers.LonLat(20, 50).transform(geographic, mercator), "Jestem Markerem.");
+
+        var click = new OpenLayers.Control.Click();
+        map.addControl(click);
+        click.activate();
+
+    }
+</script>
+
+<div style="width: 100%; height: 100%; z-index: 0;" id="map"></div>
