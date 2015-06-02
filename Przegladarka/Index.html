@@ -196,20 +196,39 @@
 </script>
 </head>
 
+<style type="text/css">
+.box {
+	border-color: black; 
+	border-style: solid; 
+	background-color: #c0c0c0; 
+	background-color: rgba(192, 192, 192, 0.8);
+}
+</style>
+
 <body onload="init()">
 <div>
-
-    <div style="z-index: 1; position: relative; top: 5%; left: 5%; height: 0; width: 250px;">
-        <div style="border-color: black; border-style: solid; background-color: #c0c0c0; background-color: rgba(192, 192, 192, 0.6);">
-            <b>Warstwy:</b>
-            <div id="layers-box">
-            </div>
-        </div>
-    </div>
-    
-
-    <div style="position: relative; width: 100%; height: 100%; z-index: 0;" id="map">
-
+	<div style="z-index: 100; position: absolute; right: 0">
+		<div style="width: 250px; position: relative; right: 0;">
+			<div class="box">
+				<b>Warstwy:</b>
+				<div id="layers-box">
+				</div>
+			</div>
+		</div>
+		<br/>
+		<div class="box">
+			Za³aduj plik SHP <br/>
+			<input type="file" accept=".shp"/>
+		</div>
+		<br/>
+		<div class="box">
+			Za³aduj plik GeoTIFF <br/>
+			<input type="file" accept=".geotiff" />
+		</div>
+	</div>
+	
+    <div style="position: absolute; width: 100%; height: 100%; z-index: 0;" id="map">
+		    
     </div>
 </div>
 </body>
