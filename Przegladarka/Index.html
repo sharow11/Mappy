@@ -1,4 +1,4 @@
-<html xmlns="http://www.w3.org/1999/xhtml">
+ï»¿<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <title>Przegladarka</title>
 	
@@ -94,7 +94,7 @@
                 { name: "Pokr_ter_2M", title: "Pokrycie terenu" },
                 { name: "Zabudowa_2M", title: "Zabudowa" },
                 { name: "Cieki_2M", title: "Cieki" },
-                { name: "Kontur_M_2M", title: "Kontur wybrze¿a morskiego" },
+                { name: "Kontur_M_2M", title: "Kontur wybrzeÂ¿a morskiego" },
                 { name: "PN_2M", title: "Granica parku narodowego" },
                 { name: "Granice_2M", title: "Granice" },
                 { name: "Drogi_2M", title: "Drogi" },
@@ -192,6 +192,8 @@
 
         $("input[name='layerSelection']").change(onLayerSelectionChanged);
 
+        map.addLayers();
+
     }
 </script>
 </head>
@@ -217,13 +219,12 @@
 		</div>
 		<br/>
 		<div class="box">
-			Za³aduj plik SHP <br/>
+			ZaÂ³aduj plik SHP <br/>
 			<input type="file" accept=".shp"/>
 		</div>
 		<br/>
 		<div class="box">
-			Za³aduj plik GeoTIFF <br/>
-			<input type="file" accept=".geotiff" />
+            <a href="GeoTIFF.html"> ZaÅ‚aduj plik GeoTIFF</a>
 		</div>
 	</div>
 	
