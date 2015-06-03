@@ -6,6 +6,10 @@
 	<script src="http://www.openlayers.org/api/OpenLayers.js"></script>
 	<script src="http://openlayers.org/en/v3.3.0/build/ol.js" type="text/javascript"></script>
 	<script src="jquery-1.10.2.min.js"></script>
+	
+	<script src="stream.js"></script>
+	<script src="shapefile.js"></script>
+	<script src="dbf.js"></script>
 
 	<script type="text/javascript">
     var map;
@@ -49,9 +53,9 @@
 
                     markers.clearMarkers();
 
-                    var position = 'Szerokosc: ' + results[1].geometry.location.j.toFixed(4) + ', dlugosc: ' + results[1].geometry.location.C.toFixed(4);
+                    var position = 'Szerokosc: ' + results[0].geometry.location.A.toFixed(4) + ', dlugosc: ' + results[0].geometry.location.F.toFixed(4);
 
-                    var tooltipContent = results[1].formatted_address + '<br/>' + position;
+                    var tooltipContent = results[0].formatted_address + '<br/>' + position;
 
                     addMarker(new OpenLayers.LonLat(glon, glat).transform(geographic, mercator), tooltipContent);
                 }
@@ -164,8 +168,27 @@
             });
 
         map.addLayers([wms, markers]);
-    }
+	}
 
+	function onShpFileChosen() {
+		var filePath = $('#shp-file-input').val();
+		
+		var maptype = map.getProjection();
+		
+		var shapefile = new Shapefile({
+			shp: filePath
+		}, function (data) {
+			var parser = new OpenLayers.Format.GeoJSON();
+			
+			var layer = new OpenLayers.Layer.Vector();
+			
+			var features = parser.read(data.geojson);
+			layer.addFeatures(features);
+			
+			map.addLayer(layer);		
+		});
+	}
+	
     function init() {
         var options = {
             projection: new OpenLayers.Projection("EPSG:3857"),
@@ -191,9 +214,9 @@
         click.activate();
 
         $("input[name='layerSelection']").change(onLayerSelectionChanged);
-
         map.addLayers();
 
+		$('#shp-file-input').change(onShpFileChosen);
     }
 </script>
 </head>
@@ -219,8 +242,8 @@
 		</div>
 		<br/>
 		<div class="box">
-			ZaÂ³aduj plik SHP <br/>
-			<input type="file" accept=".shp"/>
+			Za³aduj plik SHP <br/>
+			<input id="shp-file-input" type="file" accept=".shp"/>
 		</div>
 		<br/>
 		<div class="box">
